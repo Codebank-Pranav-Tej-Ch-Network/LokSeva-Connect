@@ -1,0 +1,38 @@
+[
+  {
+    "id": "navyas_healing",
+    "name": "Navyas Healing Hands Health Services",
+    "location": { "city": "Tirupati", "area": "Reddy & Reddy Colony" },
+    "services": ["elderly_care", "post_operative", "physiotherapy", "24_hour_nursing"],
+    "rating": 4.8,
+    "contact": "+91 99899 28878",
+    "policy": "23 years experience. Specialists in critical care. Replacement guaranteed."
+  },
+  {
+    "id": "ss_apollo",
+    "name": "SS Apollo Home Nursing Care",
+    "location": { "city": "Tirupati", "area": "Bhavani Nagar" },
+    "services": ["baby_care", "patient_care", "elderly_care", "nursing"],
+    "rating": 4.7,
+    "contact": "+91 99899 28878",
+    "policy": "Provides specialized baby care and bedridden patient support."
+  },
+  {
+    "id": "my_care_rehab",
+    "name": "My Care Rehabilitation Centres",
+    "location": { "city": "Tirupati", "area": "Shiv Jyoti Nagar" },
+    "services": ["rehabilitation", "physiotherapy", "stroke_recovery"],
+    "rating": 4.9,
+    "contact": "+91 98480 12345",
+    "policy": "Best for post-surgery and paralysis recovery patients."
+  },
+  {
+    "id": "ayurvati_care",
+    "name": "Ayurvati Home Care Service",
+    "location": { "city": "Tirupati", "area": "KT Road" },
+    "services": ["ayurvedic_care", "holistic_healing", "elder_care"],
+    "rating": 5.0,
+    "contact": "+91 88888 77777",
+    "policy": "Integrates traditional care with modern home nursing."
+  }
+]
