@@ -1,38 +1,119 @@
 [
   {
-    "id": "navyas_healing",
-    "name": "Navyas Healing Hands Health Services",
-    "location": { "city": "Tirupati", "area": "Reddy & Reddy Colony" },
-    "services": ["elderly_care", "post_operative", "physiotherapy", "24_hour_nursing"],
-    "rating": 4.8,
-    "contact": "+91 99899 28878",
-    "policy": "23 years experience. Specialists in critical care. Replacement guaranteed."
-  },
-  {
-    "id": "ss_apollo",
-    "name": "SS Apollo Home Nursing Care",
-    "location": { "city": "Tirupati", "area": "Bhavani Nagar" },
-    "services": ["baby_care", "patient_care", "elderly_care", "nursing"],
-    "rating": 4.7,
-    "contact": "+91 99899 28878",
-    "policy": "Provides specialized baby care and bedridden patient support."
-  },
-  {
-    "id": "my_care_rehab",
-    "name": "My Care Rehabilitation Centres",
-    "location": { "city": "Tirupati", "area": "Shiv Jyoti Nagar" },
-    "services": ["rehabilitation", "physiotherapy", "stroke_recovery"],
-    "rating": 4.9,
-    "contact": "+91 98480 12345",
-    "policy": "Best for post-surgery and paralysis recovery patients."
-  },
-  {
-    "id": "ayurvati_care",
-    "name": "Ayurvati Home Care Service",
-    "location": { "city": "Tirupati", "area": "KT Road" },
-    "services": ["ayurvedic_care", "holistic_healing", "elder_care"],
+    "id": "care_cure_happy_home",
+    "name": "Care & Cure Happy Home",
+    "location": { "city": "Tirupati", "area": "Agarala, Balaji District" },
+    "services": ["elderly_care", "residential_home", "long_term_care"],
     "rating": 5.0,
-    "contact": "+91 88888 77777",
-    "policy": "Integrates traditional care with modern home nursing."
+    "contact": "+91 91607 75083",
+    "policy": "Good residential care, ideal for long term senior living."
+  },
+  {
+    "id": "green_life_old_age_home",
+    "name": "Green Life Old Age Home",
+    "location": { "city": "Tirupati", "area": "KK Layout, TK Street" },
+    "services": ["elderly_care", "basic_care", "residential_home"],
+    "rating": 5.0,
+    "contact": "+91 88866 99667",
+    "policy": "Good for basic elderly care."
+  },
+  {
+    "id": "home_care_health_services",
+    "name": "Home Care Health Services (Anirudh & Rajesh)",
+    "location": { "city": "Tirupati", "area": "Sundaraiah Nagar" },
+    "services": ["home_nursing", "elderly_care", "patient_care"],
+    "rating": 5.0,
+    "contact": "+91 80741 72247",
+    "policy": "Specializes in home nursing and elderly care."
+  },
+  {
+    "id": "sris_home_health_care",
+    "name": "Sri's Home Health Care",
+    "location": { "city": "Tirupati", "area": "Vasavi Nagar, MR Pally" },
+    "services": ["home_health_care", "health_checkup", "medical_monitoring"],
+    "rating": 4.5,
+    "contact": "+91 73426 70660",
+    "policy": "Provides complete health checkups and home health care."
+  },
+  {
+    "id": "ayurvati_nursing_home",
+    "name": "Ayurvati Nursing Home Care Services",
+    "location": { "city": "Tirupati", "area": "Srinivasa Nagar" },
+    "services": ["nursing_care", "home_health", "holistic_care"],
+    "rating": 5.0,
+    "contact": "+91 85118 24197",
+    "policy": "'We care for your health' - Integrated nursing support."
+  },
+  {
+    "id": "hansa_home_care",
+    "name": "Hansa Home Care Services",
+    "location": { "city": "Tirupati", "area": "Guresan Enclave" },
+    "services": ["home_health_care", "patient_support"],
+    "rating": 4.3,
+    "contact": "+91 79971 25725",
+    "policy": "General home health care services."
+  },
+  {
+    "id": "astha_senior_living",
+    "name": "Astha Senior Living Home",
+    "location": { "city": "Tirupati", "area": "Opposite Avilala, Vedantapuram" },
+    "services": ["assisted_living", "senior_care", "residential_home"],
+    "rating": 4.0,
+    "contact": "+91 73583 88502",
+    "policy": "Assisted living facility for seniors."
+  },
+  {
+    "id": "telugu_talli_old_age_home",
+    "name": "Telugu Talli Old Age Home",
+    "location": { "city": "Tirupati", "area": "Vedantapuram" },
+    "services": ["elderly_care", "community_living", "senior_care"],
+    "rating": 4.4,
+    "contact": "+91 90002 03609",
+    "policy": "Community old age home with experienced senior care."
+  },
+  {
+    "id": "jasmine_old_age_home",
+    "name": "Jasmine Old Age Home",
+    "location": { "city": "Tirupati", "area": "Bairagipatteda" },
+    "services": ["old_age_home", "basic_senior_care"],
+    "rating": 5.0,
+    "contact": "Contact via App",
+    "policy": "Family atmosphere with 'greater home' feel."
+  },
+  {
+    "id": "navya_vrudhashram",
+    "name": "Navya Vrudhashram",
+    "location": { "city": "Tirupati", "area": "NH 18A, Tiruchanoor Road" },
+    "services": ["elderly_care", "disabled_care", "residential_support"],
+    "rating": 4.7,
+    "contact": "0877-2239992",
+    "policy": "Caters specifically to elderly and disabled individuals."
+  },
+  {
+    "id": "siva_arunodaya_home",
+    "name": "Siva Arunodaya Home for the Age",
+    "location": { "city": "Tirupati", "area": "Nagaiahgari Palle, Chandragiri" },
+    "services": ["destitute_care", "elderly_care", "charity_home"],
+    "rating": 4.5,
+    "contact": "+91 98485 30767",
+    "policy": "Care for old age and destitute elderly people."
+  },
+  {
+    "id": "madhavi_nursing_home",
+    "name": "Madhavi Nursing Home",
+    "location": { "city": "Tirupati", "area": "New Balaji Colony" },
+    "services": ["nursing_support", "patient_care", "post_operative"],
+    "rating": 4.7,
+    "contact": "+91 70471 05757",
+    "policy": "Specialized nursing support and patient care."
+  },
+  {
+    "id": "blooms_child_development",
+    "name": "Blooms Child Development & Rehab Center",
+    "location": { "city": "Tirupati", "area": "Ramnagar Quarters Road, Alipiri" },
+    "services": ["autism_support", "cerebral_palsy_care", "child_rehab", "developmental_therapy"],
+    "rating": 4.0,
+    "contact": "+91 80122 26009",
+    "policy": "Specialized support for Autism, CP, and developmental needs."
   }
 ]
