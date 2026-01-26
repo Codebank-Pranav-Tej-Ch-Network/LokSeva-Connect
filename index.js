@@ -5,9 +5,12 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { Pinecone } = require('@pinecone-database/pinecone');
 require('dotenv').config();
 
+// Initialize Express App
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Support for Profile Pics & Audit Images
+// Increase payload limit to 50MB (Safe for high-res phone cameras)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // --- CONFIGURATION ---
 const PORT = process.env.PORT || 3000;
@@ -16,22 +19,20 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const PINECONE_API_KEY = process.env.PINECONE_API_KEY;
 const PINECONE_INDEX = 'lokseva-index';
 
-// --- 1. CONNECTIONS ---
+// --- 1. DATABASE CONNECTIONS ---
 mongoose.connect(MONGO_URI)
-  .then(() => console.log("✅ Connected to MongoDB"))
-  .catch(err => console.error("❌ MongoDB Error:", err));
+  .then(() => console.log("Connected to MongoDB"))
+  .catch(err => console.error("MongoDB Error:", err));
 
 const pinecone = new Pinecone({ apiKey: PINECONE_API_KEY });
 const index = pinecone.index(PINECONE_INDEX);
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-// Gemini 2.5 Flash for everything (Chat + Vision)
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
+// Using gemini-2.5-flash as requested
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
 
 // --- 2. DATA MODELS ---
-
-// Agency Model (The Services)
 const agencySchema = new mongoose.Schema({
   id: String,
   name: String,
@@ -43,17 +44,28 @@ const agencySchema = new mongoose.Schema({
 });
 const Agency = mongoose.model('Agency', agencySchema);
 
-// User Model (The Profiles) - NEW 👤
 const userSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true }, // The Link to Firebase
+  email: { type: String, required: true, unique: true },
   name: String,
-  profilePic: String, // Stores the URL from Google/Firebase
+  profilePic: String,
   phone: String,
   age: Number,
   address: String,
-  medicalHistory: String // e.g. "Diabetic, Wheelchair user"
+  medicalHistory: String
 });
 const User = mongoose.model('User', userSchema);
+
+const conversationSchema = new mongoose.Schema({
+  user_email: { type: String, required: true },
+  title: String,
+  createdAt: { type: Date, default: Date.now },
+  messages: [{
+    sender: String,
+    text: String,
+    timestamp: { type: Date, default: Date.now }
+  }]
+});
+const Conversation = mongoose.model('Conversation', conversationSchema);
 
 // --- 3. HELPER FUNCTIONS ---
 async function getEmbedding(text) {
@@ -63,24 +75,26 @@ async function getEmbedding(text) {
 
 // --- 4. API ENDPOINTS ---
 
-// GET: List Agencies
+// GET: List all Agencies
 app.get('/api/agencies', async (req, res) => {
-  const agencies = await Agency.find();
-  res.json(agencies);
+  try {
+    const agencies = await Agency.find();
+    res.json(agencies);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch agencies" });
+  }
 });
 
-// POST: 👤 Create or Update User Profile
+// POST: User Profile
 app.post('/api/user/profile', async (req, res) => {
   try {
     const { email, name, profilePic, phone, age, address, medicalHistory } = req.body;
 
     if (!email) return res.status(400).json({ error: "Email is required" });
 
-    // Try to find existing user
     let user = await User.findOne({ email });
 
     if (user) {
-      // Update fields if provided
       user.name = name || user.name;
       user.profilePic = profilePic || user.profilePic;
       user.phone = phone || user.phone;
@@ -88,137 +102,299 @@ app.post('/api/user/profile', async (req, res) => {
       user.address = address || user.address;
       user.medicalHistory = medicalHistory || user.medicalHistory;
       await user.save();
-      console.log(`👤 Profile updated for: ${email}`);
     } else {
-      // Create new user
       user = new User({ email, name, profilePic, phone, age, address, medicalHistory });
       await user.save();
-      console.log(`🆕 New User registered: ${email}`);
     }
-
     res.json({ message: "Profile saved successfully", user });
-
   } catch (error) {
-    console.error("❌ Profile Error:", error);
+    console.error("Profile Error:", error);
     res.status(500).json({ error: "Failed to save profile" });
   }
 });
 
-// POST: 🧠 SMART SEARCH (RAG) + USER CONTEXT
+// GET: History (Lazy Loading)
+app.get('/api/chat/history', async (req, res) => {
+  try {
+    const { user_email, page = 1, limit = 10 } = req.query;
+
+    if (!user_email) return res.status(400).json({ error: "user_email is required" });
+
+    const history = await Conversation.find({ user_email })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .select('title createdAt messages');
+
+    const formattedHistory = history.map(chat => ({
+      conversationId: chat._id,
+      title: chat.title || "New Chat",
+      date: chat.createdAt,
+      lastMessage: chat.messages.length > 0 ? chat.messages[chat.messages.length - 1].text.substring(0, 50) + "..." : ""
+    }));
+
+    res.json({
+      history: formattedHistory,
+      hasMore: history.length === parseInt(limit)
+    });
+  } catch (error) {
+    console.error("History Error:", error);
+    res.status(500).json({ error: "Failed to fetch history" });
+  }
+});
+
+// GET: Single Chat
+app.get('/api/chat/:conversationId', async (req, res) => {
+  try {
+    const chat = await Conversation.findById(req.params.conversationId);
+    if (!chat) return res.status(404).json({ error: "Chat not found" });
+    res.json(chat);
+  } catch (error) {
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
+// POST: Chat (RAG + Context + Structured JSON)
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message, user_email } = req.body; 
-    console.log(`👤 User: ${user_email || 'Guest'} | ❓ Asked: ${message}`);
+    const { message, user_email, conversationId } = req.body;
 
-    // 1. FETCH USER CONTEXT (The "Memory")
-    let userContext = "User Profile: Anonymous Guest.";
-    if (user_email) {
-        const user = await User.findOne({ email: user_email });
-        if (user) {
-            userContext = `
-            USER PROFILE:
-            - Name: ${user.name}
-            - Age: ${user.age}
-            - Medical History: ${user.medicalHistory}
-            - Home Address: ${user.address}
-            (Prioritize agencies near this address and suitable for this medical history).
-            `;
-        }
+    if (!user_email) return res.status(400).json({ error: "user_email is required" });
+
+    // 1. Context
+    let userContext = "User Profile: Anonymous.";
+    const user = await User.findOne({ email: user_email });
+    if (user) {
+        userContext = `USER PROFILE: Name: ${user.name}, Age: ${user.age}, Medical History: ${user.medicalHistory}, Address: ${user.address}`;
     }
 
-    // 2. VECTOR SEARCH (The "Eyes")
+    // Context: Last 30 Messages (Raw)
+    let chatHistory = "";
+    if (conversationId) {
+      const chat = await Conversation.findById(conversationId);
+      if (chat && chat.messages) {
+        const recentMsgs = chat.messages.slice(-30);
+        chatHistory = recentMsgs.map(m => `${m.sender.toUpperCase()}: ${m.text}`).join('\n');
+      }
+    }
+
+    // 2. Vector Search
     const queryVector = await getEmbedding(message);
     const searchResponse = await index.query({
       vector: queryVector,
-      topK: 3,
+      topK: 5,
       includeMetadata: true
     });
-
     const matches = searchResponse.matches;
-    let agencyContext = "";
-    if (matches.length > 0) {
-        agencyContext = matches.map(match => `
-        Agency: ${match.metadata.name}
-        Location: ${match.metadata.area}
-        Services: ${match.metadata.services}
-        Rating: ${match.metadata.rating}
-        `).join('\n---\n');
-    } else {
-        agencyContext = "No specific agencies found for this query.";
-    }
+    let agencyContext = matches.length > 0
+      ? matches.map(m => `Agency: ${m.metadata.name}, Services: ${m.metadata.services}, Rating: ${m.metadata.rating}, Area: ${m.metadata.area}`).join('\n')
+      : "No specific agencies found.";
 
-    // 3. GENERATE ANSWER (The "Brain")
+    // 3. Generate (With Schema-Only Prompt)
+
+    // 3. GENERATE (With Strict "Anti-Hallucination" Rules)
     const prompt = `
-    You are LokSeva, an expert care assistant.
-    
+    SYSTEM: You are LokSeva, an AI Care Coordinator. Your goal is to match the user's specific medical needs with the Verified Agencies provided below.
+
     ${userContext}
 
-    AVAILABLE AGENCIES:
+    HISTORY:
+    ${chatHistory}
+
+    VERIFIED AGENCIES (Source of Truth):
     ${agencyContext}
 
     USER QUERY: "${message}"
 
-    TASK: Recommend the best agency based on the user's specific health needs and location. 
-    If no agency fits perfectly, suggest general safety advice.
+    STRICT GOVERNANCE RULES:
+    1. ZERO HALLUCINATION: You must ONLY recommend agencies listed in the "VERIFIED AGENCIES" block above. Do not invent names, ratings, or locations.
+    2. FACTUALITY: If the 'VERIFIED AGENCIES' block says "No specific agencies found," you MUST state that you cannot find a match right now. Do not make one up.
+    3. TONE: Be empathetic but professional. Acknowledge their condition (e.g., "Given your diabetes...") to show you are listening.
+
+    TASK: Output a JSON object.
+    - "reply": The chat message. Explain *why* you chose these agencies based on the user's profile.
+    - "recommendations": The list of cards.
+
+    KEEP THE ELEMENTS of the json AS BRIEF AS POSSIBLE BUT WITH FACTUAL DATA (if numbers are there go with them, or else brief and to the point sentences without missing anything important)
+
+    OUTPUT FORMAT (Strict JSON):
+    {
+      "reply": "String",
+      "recommendations": [
+        {
+          "name": "String (Exact name from Source)",
+          "rating": Number (Exact rating from Source),
+          "location": "String (Exact area)",
+          "reason": "String (Why this fits the user's specific medical history)"
+        }
+      ]
+    }
     `;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    
-    res.json({ reply: response.text() });
+
+    // Clean and Parse
+    let rawText = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+    let parsedResponse;
+    try {
+        parsedResponse = JSON.parse(rawText);
+    } catch (e) {
+        parsedResponse = { reply: rawText, recommendations: [] };
+    }
+
+    // 4. Save History
+    let conversation;
+    let title = "New Chat";
+
+    if (conversationId) {
+      conversation = await Conversation.findById(conversationId);
+      if (conversation) {
+        conversation.messages.push({ sender: 'user', text: message });
+        conversation.messages.push({ sender: 'bot', text: parsedResponse.reply });
+        await conversation.save();
+        title = conversation.title;
+      }
+    } else {
+      const titlePrompt = `Generate a 3-5 word title: "${message}"`;
+      const titleResult = await model.generateContent(titlePrompt);
+      title = titleResult.response.text().replace(/['"*]/g, '').trim();
+
+      conversation = new Conversation({
+        user_email,
+        title: title,
+        messages: [ { sender: 'user', text: message }, { sender: 'bot', text: parsedResponse.reply } ]
+      });
+      await conversation.save();
+    }
+
+    res.json({
+      reply: parsedResponse.reply,
+      recommendations: parsedResponse.recommendations,
+      conversationId: conversation._id,
+      title: title
+    });
 
   } catch (error) {
-    console.error("❌ AI Error:", error);
+    console.error("AI Error:", error);
     res.status(500).json({ error: "Something went wrong" });
   }
 });
 
-// POST: 📷 AI HOME SAFETY AUDIT (VISION)
+// POST: 📷 AI HOME SAFETY AUDIT (Personalized)
 app.post('/api/audit-image', async (req, res) => {
   try {
-    const { imageBase64, roomType, user_email } = req.body; 
-    console.log(`👤 User: ${user_email || 'Guest'} | 📷 Uploaded ${roomType} scan`);
+    let { imageBase64, roomType, user_email } = req.body;
 
+    if (!user_email) return res.status(400).json({ error: "user_email is required" });
     if (!imageBase64) return res.status(400).json({ error: "No image provided" });
 
-    // Use Gemini 2.5 Flash for Vision
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
+    // 1. FETCH USER CONTEXT
+    let userContext = "User is an elderly individual."; // Default
+    const user = await User.findOne({ email: user_email });
+    if (user) {
+        userContext = `
+        USER PROFILE:
+        - Age: ${user.age}
+        - Mobility/Health Issues: ${user.medicalHistory} (CRITICAL: Prioritize hazards related to this)
+        `;
+    }
 
+    // 2. DEFINE EXACT STANDARDS (The "Cheat Sheet" - NBC 2016 Part 3, Annex B)
+    const NBC_STANDARDS = `
+    REFERENCE STANDARDS (National Building Code of India 2016 - Accessibility):
+
+    1. BATHROOM & TOILETS (Critical Zone):
+       - DOOR: Minimum 900mm clear opening; must open outwards or slide. Lock must be openable from outside in emergency.
+       - WC SEAT: Top of seat must be 450mm - 480mm from floor.
+       - GRAB BARS (WC):
+         * Horizontal U-shape/L-shape bar: Mounted at 750mm - 850mm height.
+         * Vertical bar: Length min 600mm, mounted 150mm from front of WC.
+         * Diameter: 38mm - 50mm (circular profile) for secure grip.
+         * Wall Clearance: 50mm clearance between bar and wall to prevent hand trapping.
+       - SHOWER AREA:
+         * Size: Min 1500mm x 1500mm for wheelchair turning.
+         * Seat: Wall-mounted folding seat at 450mm height.
+         * Controls: Lever type, placed at 800mm - 1000mm height.
+       - ALARM: Emergency pull cord extending to within 300mm of floor.
+
+    2. RAMPS & STAIRS (Mobility Zone):
+       - RAMP GRADIENT: Max 1:12 (1:15 preferred). Max rise per run: 760mm.
+       - RAMP WIDTH: Min 1200mm clear width.
+       - LANDING: Min 1500mm x 1500mm landing at top and bottom of ramps.
+       - HANDRAILS:
+         * Required on BOTH sides.
+         * Heights: Double rail system at 760mm and 900mm from floor.
+         * Extensions: Must extend 300mm horizontally beyond top/bottom step.
+         * Contrast: Handrails must visually contrast with the wall background.
+       - STEPS: Riser max 150mm; Tread min 300mm. Open risers (gaps) are PROHIBITED.
+       - NOSING: Step edges must have 50mm - 75mm wide contrasting color strip.
+
+    3. CIRCULATION & DOORS (Access Zone):
+       - CORRIDORS: Min clear width 1200mm.
+       - TURNING RADIUS: 1500mm diameter clear space required for 180-degree wheelchair turn.
+       - DOOR HARDWARE: Lever handles (D-shape) required. Round knobs are a HAZARD.
+       - OPERATING FORCE: Door opening force max 22N.
+       - THRESHOLDS: Max 12mm height, beveled/chamfered edges. Raised thresholds >15mm are tripping hazards.
+
+    4. ELECTRICAL & CONTROLS:
+       - SWITCH HEIGHT: All light switches, sockets, and AC controls between 800mm and 1100mm.
+       - DISTANCE FROM CORNER: Switches min 400mm from room corners.
+
+    5. FLOORING & SURFACES:
+       - FRICTION: Slip Resistance Rating R10 or higher (COF > 0.6).
+       - TEXTURE: Matte finish required. Glazed/Polished tiles are a MAJOR HAZARD.
+       - CARPETS: Pile height max 13mm; edges must be fastened to floor.
+    `;
+
+    // 2. CLEAN IMAGE DATA
+    const base64Data = imageBase64.includes(",") ? imageBase64.split(",")[1] : imageBase64;
+
+    console.log(`📷 Audit Request from ${user_email} | Context: ${user.medicalHistory || "None"}`);
+
+    // 3. GENERATE PERSONALIZED REPORT
     const prompt = `
-    SYSTEM: You are an expert Civil Engineer specializing in "Universal Accessibility" and the "National Building Code of India 2016".
-    
-    TASK: Analyze this image of a ${roomType || "room"}.
-    Identify safety hazards for Elderly users or Post-Operative patients.
-    
-    CHECKLIST TO VERIFY:
-    1. Flooring: Is it slippery? (Fall Risk)
-    2. Handrails: Are there grab bars? (Support)
-    3. Lighting: Is it bright enough?
-    4. Door Width: Does it look wide enough for a wheelchair?
-    5. Clutter: Are there tripping hazards?
-    
-    OUTPUT FORMAT (JSON String only):
+    SYSTEM: You are an expert Home Safety Auditor specializing in Geriatric Care and NBC 2016 Standards, which are provided.
+
+    ${NBC_STANDARDS}
+
+    USER CONTEXT: ${userContext}
+
+    TASK: Analyze this image of a ${roomType || "room"} specifically for THIS user.
+
+    STRICT ANALYSIS ZONES:
+    1. FLOORING: Look for trip hazards (rugs, cords) or slip risks (wet tiles) relevant to their mobility.
+    2. SUPPORT: Check for grab bars/handrails. Are they missing where this specific user needs them?
+    3. LIGHTING: Is it bright enough for someone with potential vision issues?
+    4. ACCESSIBILITY: Is the pathway wide enough (>900mm) for a walker/wheelchair if the user needs one?
+
+    NOTE: DO NOT HALLUCINATE. You can just say "All is well" for the recommendations and hazards if they do not have any issues
+    according to the NBC 2016 Standards.
+
+    KEEP ELEMENTS of the json as brief as possible with FACTUAL DATA (if numbers are there do include them else give brief and to the point reasoning without missing anything important)
+
+    OUTPUT FORMAT (Strict JSON):
     {
-      "safety_score": (1-10),
-      "hazards": ["List of specific risks found"],
-      "recommendations": ["List of fixes based on Indian Standards"]
+      "safety_score": Integer (1-10, where 10 is safest),
+      "hazards": ["String: Specific hazard "],
+      "recommendations": ["String: Specific fix "]
     }
     `;
 
     const result = await model.generateContent([
       prompt,
-      { inlineData: { data: imageBase64, mimeType: "image/jpeg" } }
+      { inlineData: { data: base64Data, mimeType: "image/jpeg" } }
     ]);
 
-    res.json({ audit_report: result.response.text() });
+    let cleanText = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+    res.json({ audit_report: cleanText });
 
   } catch (error) {
-    console.error("❌ Audit Error:", error);
-    res.status(500).json({ error: "Vision Analysis Failed" });
+    console.error("Audit Error:", error);
+    res.status(500).json({ error: "Vision Analysis Failed: " + error.message });
   }
 });
 
-// POST: Seed Database (Run once to update Pinecone)
+// POST: Seed Database
 app.post('/api/seed-vectors', async (req, res) => {
   try {
     const agencies = await Agency.find();
@@ -228,6 +404,7 @@ app.post('/api/seed-vectors', async (req, res) => {
     for (const agency of agencies) {
       const textToEmbed = `${agency.name} offers ${agency.services.join(', ')} in ${agency.location.area}. Rating: ${agency.rating}.`;
       const embedding = await getEmbedding(textToEmbed);
+
       vectors.push({
         id: agency._id.toString(),
         values: embedding,
@@ -239,12 +416,16 @@ app.post('/api/seed-vectors', async (req, res) => {
         }
       });
     }
-    await index.upsert(vectors);
-    res.json({ message: `✅ Successfully embedded ${vectors.length} agencies!` });
+
+    if (vectors.length > 0) {
+        await index.upsert(vectors);
+    }
+
+    res.json({ message: `Successfully embedded ${vectors.length} agencies!` });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
 
-app.listen(PORT, () => console.log(`🚀 RAG Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`LokSeva Backend V2.3 Running on Port ${PORT}`));
