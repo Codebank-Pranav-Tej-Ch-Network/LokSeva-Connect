@@ -15,9 +15,17 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // --- CONFIGURATION ---
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const PINECONE_API_KEY = process.env.PINECONE_API_KEY;
 const PINECONE_INDEX = 'lokseva-index';
+
+// --- 🔑 API KEY ROTATION SYSTEM ---
+// Load all available keys from .env to avoid Rate Limits (429 Errors)
+const API_KEYS = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY_1,
+    process.env.GEMINI_API_KEY_2,
+    process.env.GEMINI_API_KEY_3
+].filter(Boolean); // Remove undefined/null keys
 
 // --- 1. DATABASE CONNECTIONS ---
 mongoose.connect(MONGO_URI)
@@ -27,11 +35,17 @@ mongoose.connect(MONGO_URI)
 const pinecone = new Pinecone({ apiKey: PINECONE_API_KEY });
 const index = pinecone.index(PINECONE_INDEX);
 
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-// Using gemini-2.5-flash as requested
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+if (API_KEYS.length === 0) {
+    console.error("❌ CRITICAL: No Gemini API Keys found!");
+    process.exit(1);
+}
 
+// Function to get a random model instance (Load Balancing)
+function getGenModel(modelName = "gemini-2.5-flash") {
+    const randomKey = API_KEYS[Math.floor(Math.random() * API_KEYS.length)];
+    const genAI = new GoogleGenerativeAI(randomKey);
+    return genAI.getGenerativeModel({ model: modelName });
+}
 // --- 2. DATA MODELS ---
 const agencySchema = new mongoose.Schema({
   id: String,
@@ -69,10 +83,11 @@ const Conversation = mongoose.model('Conversation', conversationSchema);
 
 // --- 3. HELPER FUNCTIONS ---
 async function getEmbedding(text) {
-  const result = await embeddingModel.embedContent(text);
+  // Use rotated key for embeddings
+  const model = getGenModel("text-embedding-004");
+  const result = await model.embedContent(text);
   return result.embedding.values;
 }
-
 // --- 4. API ENDPOINTS ---
 
 // GET: List all Agencies
@@ -129,7 +144,7 @@ app.get('/api/chat/history', async (req, res) => {
     const formattedHistory = history.map(chat => ({
       conversationId: chat._id,
       title: chat.title || "New Chat",
-      date: chat.createdAt,
+      date: chat.createdAt ? chat.createdAt.toISOString() : new Date().toISOString(),,
       lastMessage: chat.messages.length > 0 ? chat.messages[chat.messages.length - 1].text.substring(0, 50) + "..." : ""
     }));
 
@@ -231,6 +246,7 @@ app.post('/api/chat', async (req, res) => {
     }
     `;
 
+    const model = getGenModel(); // Get random key
     const result = await model.generateContent(prompt);
 
     // Clean and Parse
@@ -255,9 +271,10 @@ app.post('/api/chat', async (req, res) => {
         title = conversation.title;
       }
     } else {
-      const titlePrompt = `Generate a 3-5 word title: "${message}"`;
-      const titleResult = await model.generateContent(titlePrompt);
-      title = titleResult.response.text().replace(/['"*]/g, '').trim();
+      const titleModel = getGenModel();
+      const titlePrompt = `Generate a title for this chat. MAX 40 characters. NO formatting. NO newlines. Query: "${message}"`;
+      const titleResult = await titleModel.generateContent(titlePrompt);
+      title = titleResult.response.text().replace(/['"\n]/g, '').substring(0, 50).trim();
 
       conversation = new Conversation({
         user_email,
@@ -283,6 +300,7 @@ app.post('/api/chat', async (req, res) => {
 // POST: 📷 AI HOME SAFETY AUDIT (Personalized)
 app.post('/api/audit-image', async (req, res) => {
   try {
+    const model = getGenModel();
     let { imageBase64, roomType, user_email } = req.body;
 
     if (!user_email) return res.status(400).json({ error: "user_email is required" });
@@ -374,7 +392,7 @@ app.post('/api/audit-image', async (req, res) => {
 
     OUTPUT FORMAT (Strict JSON):
     {
-      "safety_score": Integer (1-10, where 10 is safest),
+      "safety_score": Integer (1-10, where 10 is safest. Must be a raw Integer, not a String),
       "hazards": ["String: Specific hazard "],
       "recommendations": ["String: Specific fix "]
     }
