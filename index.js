@@ -144,7 +144,7 @@ app.get('/api/chat/history', async (req, res) => {
     const formattedHistory = history.map(chat => ({
       conversationId: chat._id,
       title: chat.title || "New Chat",
-      date: chat.createdAt ? chat.createdAt.toISOString() : new Date().toISOString(),,
+      date: chat.createdAt ? chat.createdAt.toISOString() : new Date().toISOString(),
       lastMessage: chat.messages.length > 0 ? chat.messages[chat.messages.length - 1].text.substring(0, 50) + "..." : ""
     }));
 
