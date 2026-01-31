@@ -1,7 +1,7 @@
 # LokSeva Connect API Documentation (V2.3)
 
-**Base URL:** `https://lokseva-connect.onrender.com`\n
-**Status:** Live & Auto-Scaling\n
+**Base URL:** `https://lokseva-connect.onrender.com`
+**Status:** Live & Auto-Scaling
 **Auth Strategy:** Trust-based. Authenticate via Firebase on Flutter, then pass the `email` field in every request body to link data.
 
 ---
