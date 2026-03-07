@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "395571563738",
+    "project_id": "lokseva-1dbcd",
+    "storage_bucket": "lokseva-1dbcd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:395571563738:android:6360b697788cdd393be9e3",
+        "android_client_info": {
+          "package_name": "com.example.lokseva"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "395571563738-ni0v5vd0rmumpuna6ks2obj8srjfh7p1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.lokseva",
+            "certificate_hash": "80b793b376cb62a175f015c9d450a12e2a27a4a4"
+          }
+        },
+        {
+          "client_id": "395571563738-8bsabbd32clfnuhatdev34gccln7l2iu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDnyZiKjyWuOWlqmTGZHqdHvJHBgyTgHnI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "395571563738-8bsabbd32clfnuhatdev34gccln7l2iu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
