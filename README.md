@@ -216,11 +216,11 @@ The platform is currently in **Phase 1 Deployment (V2.4)**.
 
 LokSeva Connect was developed collaboratively to solve real-world geriatric care challenges.
 
-| Team Member | Role | Core Contributions |
-| :--- | :--- | :--- |
-| **Pranav** | Backend & AI Architect | Engineered the Node.js API and MongoDB architecture. Integrated Gemini 2.5 Flash for RAG and Vision Audits, configured the Pinecone Vector Database, and implemented the dynamic API Key rotation and anti-hallucination governance. |
-| **Mritunjay** | Frontend Developer | Developed the cross-platform Flutter mobile application. Integrated Firebase Authentication, designed the responsive Flashcard UI for agency matching, and built the camera upload module for the Home Safety Auditor. |
-| **Manoj** | Field Researcher & Data Lead | Spearheaded ground-truth data acquisition. Conducted physical surveys of local care agencies in the Tirupati region, verified their medical capabilities, and structured the raw field data into JSON for the AI vector search. |
+| Team Member | Roll Number | Role | Core Contributions |
+| :--- | :--- | :--- | :--- |
+| **Pranav** | **CS24B057** | Backend & AI Architect | Engineered the Node.js API and MongoDB architecture. Integrated Gemini 2.5 Flash for RAG and Vision Audits, configured the Pinecone Vector Database, and implemented the dynamic API Key rotation and anti-hallucination governance. |
+| **Mritunjay** | **CS24B054** | Frontend Developer | Developed the cross-platform Flutter mobile application. Integrated Firebase Authentication, designed the responsive Flashcard UI for agency matching, and built the camera upload module for the Home Safety Auditor. |
+| **Manoj** | **CE24B020** | Field Researcher & Data Lead | Spearheaded ground-truth data acquisition. Conducted physical surveys of local care agencies in the Tirupati region, verified their medical capabilities, and structured the raw field data into JSON for the AI vector search. |
 
 ---
 <div align="center">
