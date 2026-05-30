@@ -211,3 +211,18 @@ The platform is currently in **Phase 1 Deployment (V2.4)**.
 * **Data Validated:** Successfully digitized and vectorized ground-truth data from 13+ agencies in the Tirupati region.
 * **API Stability:** Deployed with dynamic key rotation, completely resolving rate-limit bottlenecks and 500 errors.
 * **Vision Accuracy:** The auditor successfully flags critical architectural flaws (e.g., identifying bathtub barriers for wheelchair users and missing pull-cord alarms) using strictly typed JSON outputs for seamless frontend integration.
+
+## 👥 Team & Contributions
+
+LokSeva Connect was developed collaboratively to solve real-world geriatric care challenges.
+
+| Team Member | Role | Core Contributions |
+| :--- | :--- | :--- |
+| **Pranav** | Backend & AI Architect | Engineered the Node.js API and MongoDB architecture. Integrated Gemini 2.5 Flash for RAG and Vision Audits, configured the Pinecone Vector Database, and implemented the dynamic API Key rotation and anti-hallucination governance. |
+| **Mritunjay** | Frontend Developer | Developed the cross-platform Flutter mobile application. Integrated Firebase Authentication, designed the responsive Flashcard UI for agency matching, and built the camera upload module for the Home Safety Auditor. |
+| **Manoj** | Field Researcher & Data Lead | Spearheaded ground-truth data acquisition. Conducted physical surveys of local care agencies in the Tirupati region, verified their medical capabilities, and structured the raw field data into JSON for the AI vector search. |
+
+---
+<div align="center">
+  <i>Built with ❤️ for the elderly community.</i>
+</div>
